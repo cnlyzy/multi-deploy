@@ -1,0 +1,28 @@
+{
+  "redis": {
+    "addr": "127.0.0.1:6379",
+    "password": "YOUR REDIS PASSWORD",
+    "db": 1,
+    "key": "multi-deploy-hosts",
+    "keyTTL": 864000
+  },
+  "sync": {
+    "userName": "root",
+    "destPathPrefix": "/data/www/",
+    "excludeFrom": "multi_deploy_exclude.txt"
+  },
+  "net": {
+    "port": "22",
+    "timeout": 3000
+  },
+  "log": {
+    "enable": true,
+    "type": "redis",
+    "keyName": "deploy-logs",
+    "filePath": "/var/log/deploy-logs/"
+  },
+  "notify": {
+    "type": "dingding",
+    "robotUrl": "https://oapi.dingtalk.com/robot/send?access_token=TOKEN"
+  }
+}
