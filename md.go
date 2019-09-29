@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"github.com/go-redis/redis"
 	"io/ioutil"
-	"net"
-	"net/http"
+	"multi-deploy/notify"
+	"multi-deploy/utils"
 	"os"
 	"os/exec"
 	"runtime"
@@ -35,7 +35,7 @@ func init() {
 		fmt.Println("version:0.1.2")
 		os.Exit(0)
 	}
-	if !isDir(p) {
+	if !utils.IsDir(p) {
 		flag.Usage()
 		os.Exit(0)
 	}
@@ -137,13 +137,13 @@ func main() {
 	wg.Wait() //等待协程执行结束
 	now := time.Now()
 	client.HSet(conf.Log.KeyName+":"+projectName+":"+now.Format("20060102"), now.Format("1504.05"), log)
-	ding(conf.Notify.RobotURL, log)
+	notify.Ding(conf.Notify.RobotURL, log)
 	fmt.Println("程序运行结束 Bye bye ~")
 }
 
 //开始同步,检查主机是否连通
 func doSync(ip string, pwd string, projectName string, conf Config) {
-	netStatus := tcp(ip+":"+conf.Net.Port, conf.Net.Timeout)
+	netStatus := utils.Tcp(ip+":"+conf.Net.Port, conf.Net.Timeout)
 	if netStatus {
 		//fmt.Println("网络连接成功:", ip)
 		destPath := conf.Sync.DestPathPrefix + projectName
@@ -169,62 +169,4 @@ func doSync(ip string, pwd string, projectName string, conf Config) {
 		log += "网络连接失败:" + ip + "\n"
 	}
 	wg.Done() //计数减一
-}
-
-// 判断所给路径是否为文件夹
-func isDir(path string) bool {
-	if len(path) == 0 {
-		return false
-	}
-	s, err := os.Stat(path)
-	if err != nil {
-		return false
-	}
-	return s.IsDir()
-}
-
-//定义检测 tcp 服务的脚本，用到 net 包 主机连通性测试
-func tcp(url string, timeOut int) bool {
-	//_, err := net.Dial("tcp", url)
-	_, err := net.DialTimeout("tcp", url, time.Duration(timeOut)*time.Millisecond)
-	if err != nil {
-		//fmt.Println(err)
-		return false
-	} else {
-		return true
-	}
-}
-
-type dingMsg struct {
-	MsgType string `json:"msgtype"`
-	Text    struct {
-		Content string `json:"content"`
-	} `json:"text"`
-}
-
-//发送钉钉通知
-func ding(url string, msg string) bool {
-	jsonMsg, _ := json.Marshal(dingMsg{
-		MsgType: "text",
-		Text: struct {
-			Content string `json:"content"`
-		}{Content: msg},
-	})
-	payload := strings.NewReader(string(jsonMsg))
-	//fmt.Println(payload)
-	req, _ := http.NewRequest("POST", url, payload)
-
-	req.Header.Add("Content-Type", "application/json")
-	req.Header.Add("Cache-Control", "no-cache")
-	req.Header.Add("Host", "oapi.dingtalk.com")
-
-	res, _ := http.DefaultClient.Do(req)
-
-	defer res.Body.Close()
-	body, _ := ioutil.ReadAll(res.Body)
-
-	//fmt.Println(res)
-	fmt.Println(string(body))
-	//TODO 返回值判断,处理
-	return true
 }
